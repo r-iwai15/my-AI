@@ -1,0 +1,119 @@
+プロジェクト: Self-Clone LLM (自己思考移植AI)
+
+このプロジェクトは、自身の対話や独自の哲学・価値観をまとめた約3700件のJSONLデータをベースモデルに学習（LoRAファインチューニング）させ、完全ローカルで動作する「自分の分身」となるAIを構築する試みです。
+
+🖥 実行環境
+
+• Machine: Mac mini (M4チップ)
+
+• Memory: 24GB Unified Memory (GPUメモリとしてフル活用可能)
+
+• Framework: Apple MLX (mlx-lm)
+
+• Base Model: mlx-community/Qwen2.5-7B-Instruct-4bit (高速化・省メモリ化のため4-bit量子化版を使用)
+
+• UI Tool: LM Studio (最終的な推論用)
+
+🛠 構築ステップ
+
+Step 1: データの準備と分割
+
+成形済みのJSONLファイル（約3700件）を、学習用(train.jsonl)と検証用(valid.jsonl)に9:1で分割する。
+
+使用したスクリプト (split.py):
+
+[python]
+import os
+import random
+
+input_file = 'dataset.jsonl' # 元ファイル名
+os.makedirs('data', exist_ok=True)
+
+with open(input_file, 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+
+random.seed(42)
+random.shuffle(lines)
+split_idx = int(len(lines) * 0.9)
+
+with open('data/train.jsonl', 'w', encoding='utf-8') as f:
+    f.writelines(lines[:split_idx])
+with open('data/valid.jsonl', 'w', encoding='utf-8') as f:
+    f.writelines(lines[split_idx:])
+
+
+⚠️ 注意: ファイル名にスペースを含めると実行時にエラーになるため、必ず split.py のようにスペース無しで保存すること。
+
+Step 2: LoRAによるファインチューニング
+
+Appleシリコンに最適化されたMLXフレームワークを使用し、ターミナルから直接学習を実行。data フォルダ内のファイルを読み込み、adapters フォルダに差分データを出力する。
+
+基本の学習コマンド（1周 / 1700ステップ）:
+
+[bash]
+mlx_lm.lora \
+    --model mlx-community/Qwen2.5-7B-Instruct-4bit \
+    --train \
+    --data ./data \
+    --batch-size 2 \
+    --num-layers 16 \
+    --iters 1700 \
+    --val-batches 25 \
+    --adapter-path ./adapters
+
+
+Step 3: 学習結果のテスト対話
+
+学習完了後、生成されたアダプタを適用してターミナル上で対話テストを行う。
+
+[bash]
+mlx_lm.chat \
+    --model mlx-community/Qwen2.5-7B-Instruct-4bit \
+    --adapter-path ./adapters
+
+
+⚠️ 発生した課題と「思想の壁」
+
+1. mlx-lm の仕様変更によるエラー
+
+• 事象: --lora-layers 16 オプションを指定したところ、unrecognized arguments エラーが発生。
+
+• 解決: 最新のバージョンではオプション名が --num-layers に変更されていたため、コマンドを修正して通過。
+
+2. データフォルダの参照エラー
+
+• 事象: ValueError: Training set not found or empty. が発生。
+
+• 解決: data フォルダの中に正確に train.jsonl と valid.jsonl が配置されている必要がある。階層ズレやファイル名違いを修正。
+
+3. 【重要】AIが「真逆の思想」を語り出す現象
+
+1700ステップ（約1エポック）の学習完了後、テスト対話で「幸福とは？」と問うたところ、自身の思想とは真逆の「システムに依存し、社会から与えられるもの」という冷徹なロジックをドヤ顔で展開した。
+
+原因の考察:
+
+1. 分析対象の混同: データセット内に含まれる「社会システムへの批判・分析」の文脈を、AIが「この世界のルール（肯定すべき事実）」として誤認した。
+
+2. ベースモデルのバイアス: 元のQwenモデルが持つ「社会的に正しく協調的な優等生バイアス」を、1周の学習では破壊・上書きしきれなかった。
+
+3. 表現の解像度不足: 単語や文体（ガワ）はコピーできたが、その背後にある「システムへの反逆・個の絶対性」という深い意味（魂）まで到達していない。
+
+🚀 次のステップ：思想の再構築
+
+この「真逆の思想」を叩き直すため、次回は以下の「プランA（力技のオーバーライド）」を実行し、モデルの深い部分まで自己の思想を浸透させる。
+
+強化版学習コマンド案（Rankを引き上げ、3周学習）:
+
+[bash]
+mlx_lm.lora \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --train \
+    --data ./data \
+    --batch-size 2 \
+    --num-layers 16 \
+    --iters 5100 \
+    --lora-parameters '{"rank": 32, "alpha": 64}' \
+    --adapter-path ./adapters
+
+
+※ adapters の上書きを行い、真の自己クローンを完成させる。その後、LM StudioへインポートするためのFuse（結合）とGGUF変換へと進む。
