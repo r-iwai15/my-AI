@@ -4,10 +4,6 @@
 
 🖥 実行環境
 
-• Machine: Mac mini (M4チップ)
-
-• Memory: 24GB Unified Memory (GPUメモリとしてフル活用可能)
-
 • Framework: Apple MLX (mlx-lm)
 
 • Base Model: mlx-community/Qwen2.5-7B-Instruct-4bit (高速化・省メモリ化のため4-bit量子化版を使用)
